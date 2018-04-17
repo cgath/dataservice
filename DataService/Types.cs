@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Collections.Generic;
 
 namespace DataService.Types
@@ -12,11 +13,13 @@ namespace DataService.Types
         private int[] _idx_vector;
         private int[] _rep_vector;
         private int[] _delete_vector;
+        private List<String> _ref_names;
 
         public List<Segment> Segments { get => _segments; set => _segments = value; }
         public Guid ID { get => _id; set => _id = value; }
         public string DataUri { get => _data_uri; set => _data_uri = value; }
         public string RefUri { get => _ref_uri; set => _ref_uri = value; }
+        public List<String> ConstituentNames { get => _ref_names; set => _ref_names = value; }
         
         public int[] IdxVector { get => _idx_vector; }
         public int[] RepVector { get => _rep_vector; }
