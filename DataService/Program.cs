@@ -1,16 +1,20 @@
 ﻿using System;
 using System.IO;
+using System.Threading.Tasks;
 using System.Collections.Generic;
 
 namespace DataService
 {
-    class Program
+    using Microsoft.WindowsAzure.Storage;
+    using Microsoft.WindowsAzure.Storage.Blob;
+
+    public static class Program
     {
-        static void Main(string[] args)
+        public static void Main(string[] args)
         {
-            Console.WriteLine("Server waiting for requests. " +
-                                  "Press <Spacebar> to generate test data. " +
-                                  "Press <Enter> to send. " + 
+            Console.WriteLine("Server waiting for requests:\n" +
+                                  "Press <Spacebar> to generate test data.\n" +
+                                  "Press <Enter> to send.\n" + 
                                   "Press <Esc> to quit.");
 
                 var cki = new ConsoleKeyInfo();
@@ -22,18 +26,22 @@ namespace DataService
                         // Get sample wavelength data
                         Console.Write("Generating test data ... "); // DEBUG
 
-                        int samples = 40000; 
-                        int wavelengths = 4200;
-                        int references = 3;
+                        //int samples = 40000;
+                        //int wavelengths = 4200;
+                        //int references = 3;
 
-                        var data = Data.GenerateBinaryDataBlob(samples, wavelengths, references);
+                        //var data = Data.GenerateBinaryDataBlob(samples, wavelengths, references);
+                        //var success = Data.GenerateBinaryDataFile(@"dataset.dat", samples, wavelengths, references);
                         
                         Console.WriteLine("Done!"); // DEBUG
                     }
 
                     if (cki.Key == ConsoleKey.Enter)
                     {
-                        Console.WriteLine("Received <Enter> ... No action ...");
+                        Console.WriteLine("Received <Enter> => Uploading ...");
+                        UploadDataAsync().GetAwaiter().GetResult();
+
+                        Console.WriteLine("Done!"); // DEBUG
                     }
 
                     if (cki.Key == ConsoleKey.Escape)
@@ -44,6 +52,34 @@ namespace DataService
 
             Console.WriteLine("Hello World!");
         }
+
+        public static async Task UploadDataAsync()
+        {
+            CloudStorageAccount storageAccount = null;
+            CloudBlobContainer container = null;
+            
+            string sourceFile = "dataset.dat";
+            //string destinationFile = null;
+
+            string connString = Environment.GetEnvironmentVariable("storageconnectionstring");
+
+            if (CloudStorageAccount.TryParse(connString, out storageAccount))
+            {
+                // Get container ref
+                CloudBlobClient client = storageAccount.CreateCloudBlobClient();
+                container = client.GetContainerReference("test");
+
+                // Get block blob and upload
+                CloudBlockBlob blob = container.GetBlockBlobReference("dataset_40k_3ref");
+                await blob.UploadFromFileAsync(sourceFile);
+
+                //var hest = 5;
+            }
+            else {
+                Console.WriteLine("Invalid connection string!");
+            }
+        }
+
     }
 
     // This should obviously not be here. It is used for testing
@@ -51,24 +87,31 @@ namespace DataService
     {
         public static byte[] GenerateBinaryDataBlob(int nSamples, int nPoints, int nRefs = 0)
         {
-            var nValues = nSamples * (nPoints + nRefs);
-            var data = new double[nValues];
-            var bytes = new byte[nValues * sizeof(double)];
-
             var rng = new Random();
-            for (int i=0; i < nValues; i++)
+
+            var nValues = nPoints + nRefs;
+            var data = new double[nValues];
+            var bytes = new byte[nSamples * nValues * sizeof(double)];
+
+            for (int i=0; i < nSamples; i++)
             {
-                data[i] = rng.NextDouble();
-                Buffer.BlockCopy(data, 0, bytes, 0, bytes.Length);
+                for (int j=0;j<nValues;j++) data[j] = rng.NextDouble();
+            
+                // Copy to byte[]
+                Buffer.BlockCopy(data, 0, bytes, i*nValues, nValues);
             }
 
             return bytes;
         }
 
-        public static bool GenerateBinaryDataFile(string filename, int nSamples, int nPoints)
+        public static bool GenerateBinaryDataFile(
+            string filename, int nSamples, int nPoints, int nRefs = 0)
         {
             var rng = new Random();
-            var sample = new double[nPoints];
+
+            var nValues = nPoints + nRefs;
+            var sample = new double[nValues];
+            var bytes = new byte[nValues * sizeof(double)];
 
             var mode = FileMode.Create;
             var access = FileAccess.Write;
@@ -78,14 +121,10 @@ namespace DataService
             {
                 for (int i=0; i < nSamples; i++)
                 {
-                    // Generate next sample
-                    for (int j = 0; j < nPoints; j++)
-                    {
-                        sample[j] = rng.NextDouble();
-                    }
-
-                    var bytes = new byte[sample.Length * sizeof(double)];
-                    Buffer.BlockCopy(sample, 0, bytes, 0, bytes.Length);
+                    for (int j=0;j<nValues;j++) sample[j] = rng.NextDouble();
+            
+                    // Copy to byte[]
+                    Buffer.BlockCopy(sample, 0, bytes, 0, nValues);
 
                     // Write sample to file
                     writer.Write(bytes);

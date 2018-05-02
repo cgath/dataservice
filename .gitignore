@@ -2,3 +2,6 @@
 
 DataService/bin
 DataService/obj
+
+*.dat
+

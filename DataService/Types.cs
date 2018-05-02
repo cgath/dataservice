@@ -21,9 +21,9 @@ namespace DataService.Types
         public string RefUri { get => _ref_uri; set => _ref_uri = value; }
         public List<String> ConstituentNames { get => _ref_names; set => _ref_names = value; }
         
-        public int[] IdxVector { get => _idx_vector; }
-        public int[] RepVector { get => _rep_vector; }
-        public int[] DeleteVector { get => _delete_vector; }
+        public int[] IdxVector { get => _idx_vector; set => _idx_vector = value; }
+        public int[] RepVector { get => _rep_vector; set => _rep_vector = value; }
+        public int[] DeleteVector { get => _delete_vector; set => _delete_vector = value; }
     }
 
     public class Segment
